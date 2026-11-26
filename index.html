@@ -3,14 +3,74 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Team Pluto</title>
+  <title>Pluto: Auto-Dungeon</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <canvas id="game" width="800" height="600"></canvas>
-  <p class="hint">Arrow keys to move. <a href="https://mariofuest.github.io/krea-vibe/">All games</a></p>
+  <header>
+    <h1>Pluto: Auto-Dungeon</h1>
+    <p>Stell deinen Helden zusammen. Danach entscheidet er alles selbst.</p>
+  </header>
 
-  <!-- Open with Live Server. Load order matters: libraries and helpers first, main.js last. -->
+  <!-- Auswahl -->
+  <main id="setup">
+    <section class="col">
+      <div class="budget"><span id="points">12</span> von <span id="budget">12</span> Punkten übrig</div>
+      <h2>Werte</h2>
+      <div id="stats"></div>
+      <h2>Taktik <small>kostenlos</small></h2>
+      <div id="tactics" class="cards three"></div>
+    </section>
+    <section class="col">
+      <h2>Fähigkeiten</h2>
+      <div id="abilities" class="cards"></div>
+      <div class="actions">
+        <button id="start" class="big">▶ Play</button>
+        <button id="reset" class="ghost">Standard-Build</button>
+      </div>
+      <h2>Bisherige Versuche <button id="clear" class="ghost small">leeren</button></h2>
+      <ol id="attempts"></ol>
+      <p class="hint">Gleicher Dungeon, gleicher Build = gleicher Ablauf. Der Ausgang öffnet sich erst, wenn der Höhlenwächter besiegt ist.</p>
+    </section>
+  </main>
+
+  <!-- Abspielen -->
+  <main id="play" hidden>
+    <div class="stage">
+      <canvas id="game" width="800" height="520"></canvas>
+      <div id="result" hidden>
+        <h2 id="resulttitle"></h2>
+        <p id="resulttext"></p>
+        <button id="change" class="big">Build ändern</button>
+        <button id="again" class="ghost">Nochmal ansehen</button>
+      </div>
+      <div class="controls">
+        <button id="first" title="Zum Anfang">⏮</button>
+        <button id="prev" title="Einen Zug zurück (←)">◀</button>
+        <button id="playpause" class="pp" title="Abspielen/Pause (Leertaste)">⏸</button>
+        <button id="next" title="Einen Zug weiter (→)">▶</button>
+        <button id="last" title="Zum Ende">⏭</button>
+        <input id="timeline" type="range" min="0" value="0" aria-label="Zeitleiste">
+        <span id="turn"></span>
+        <span id="speeds"></span>
+      </div>
+    </div>
+    <aside>
+      <div class="hpbar"><div id="hp"></div><span id="hptext"></span></div>
+      <div id="herostats"></div>
+      <h3>Logbuch</h3>
+      <ol id="log"></ol>
+      <button id="back" class="ghost">← Build ändern</button>
+    </aside>
+  </main>
+
+  <footer><a href="history/">Versionen &amp; Prompts</a> · <a href="https://mariofuest.github.io/krea-vibe/">Alle Spiele</a></footer>
+
+  <script src="js/data.js"></script>
+  <script src="js/dungeon.js"></script>
+  <script src="js/sim.js"></script>
+  <script src="js/render.js"></script>
+  <script src="js/ui.js"></script>
   <script src="js/main.js"></script>
 </body>
 </html>

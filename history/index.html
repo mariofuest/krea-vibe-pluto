@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Versionen und Prompts</title>
+  <style>
+    :root { --bg: #100e18; --panel: #1b1828; --line: #2f2a45; --fg: #ece8f5; --muted: #9a93b3; --gold: #ffd166; --blue: #6c8cff; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; background: var(--bg); color: var(--fg); font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+    body { display: grid; grid-template-columns: 340px 1fr; grid-template-rows: auto 1fr; height: 100vh; }
+    header { grid-column: 1 / -1; display: flex; gap: 12px; align-items: center; padding: 10px 16px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+    header h1 { margin: 0; font: 800 18px ui-monospace, Menlo, monospace; color: var(--gold); }
+    header .sum { color: var(--muted); font-size: 13px; }
+    header .nav { margin-left: auto; display: flex; gap: 6px; }
+    button, a.btn { font: inherit; font-size: 14px; color: var(--fg); background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 5px 10px; cursor: pointer; text-decoration: none; }
+    button:disabled { opacity: .35; cursor: default; }
+    #list { overflow: auto; border-right: 1px solid var(--line); padding: 8px; }
+    .v { padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; margin-bottom: 8px; cursor: pointer; background: var(--panel); }
+    .v.on { border-color: var(--gold); box-shadow: inset 0 0 0 1px var(--gold); }
+    .v .meta { display: flex; justify-content: space-between; font: 12px ui-monospace, Menlo, monospace; color: var(--muted); }
+    .v .meta b { color: var(--gold); font-size: 14px; }
+    .v .note { margin-top: 4px; font-size: 13.5px; }
+    .v .prompt { margin-top: 6px; font-size: 13px; color: var(--muted); white-space: pre-wrap; max-height: 4.4em; overflow: hidden; }
+    .v.on .prompt { max-height: none; color: var(--fg); }
+    main { display: grid; grid-template-rows: 1fr; min-height: 0; }
+    iframe { width: 100%; height: 100%; border: 0; background: #000; }
+    @media (max-width: 800px) {
+      body { grid-template-columns: 1fr; grid-template-rows: auto auto 70vh; height: auto; }
+      #list { border-right: 0; max-height: 45vh; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Versionen &amp; Prompts</h1>
+    <span class="sum" id="sum"></span>
+    <div class="nav">
+      <button id="older">◀ ältere</button>
+      <button id="newer">neuere ▶</button>
+      <a class="btn" id="open" target="_blank">↗ öffnen</a>
+      <a class="btn" href="../">aktuelles Spiel</a>
+    </div>
+  </header>
+  <div id="list"></div>
+  <main><iframe id="frame" title="Spielversion"></iframe></main>
+
+  <script>
+    var versions = [], cur = -1;
+    function fmtDur(s) { var m = Math.round(s / 60); return m < 60 ? m + " Min." : Math.floor(m / 60) + " Std. " + (m % 60) + " Min."; }
+    function fmtTime(iso) { var d = new Date(iso); return d.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit" }) + " " + d.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" }); }
+    function pad(n) { return ("00" + n).slice(-3); }
+    function select(i) {
+      cur = Math.max(0, Math.min(versions.length - 1, i));
+      var e = versions[cur], url = "v" + pad(e.v) + "/index.html";
+      document.getElementById("frame").src = url;
+      document.getElementById("open").href = url;
+      document.getElementById("older").disabled = cur === 0;
+      document.getElementById("newer").disabled = cur === versions.length - 1;
+      versions.length && versions.forEach(function (_, k) { document.getElementById("v" + k).classList.toggle("on", k === cur); });
+      document.getElementById("v" + cur).scrollIntoView({ block: "nearest" });
+      window.location.hash = "v" + e.v;
+    }
+    fetch("history.json", { cache: "no-store" }).then(function (r) { return r.json(); }).then(function (h) {
+      versions = h;
+      var total = h.reduce(function (s, e) { return s + (e.v > 0 ? e.seconds : 0); }, 0);
+      document.getElementById("sum").textContent = (h.length - 1) + (h.length === 2 ? " Prompt" : " Prompts") + ", zusammen " + fmtDur(total) + " Arbeitszeit";
+      var list = document.getElementById("list");
+      h.slice().reverse().forEach(function (e) {
+        var k = h.indexOf(e), d = document.createElement("div");
+        d.className = "v"; d.id = "v" + k;
+        d.innerHTML = '<div class="meta"><b></b><span></span></div><div class="note"></div><div class="prompt"></div>';
+        d.querySelector("b").textContent = "Version " + e.v;
+        d.querySelector(".meta span").textContent = fmtTime(e.start) + (e.v > 0 ? " · " + fmtDur(e.seconds) : "");
+        d.querySelector(".note").textContent = e.note || "";
+        d.querySelector(".prompt").textContent = e.prompt;
+        d.onclick = function () { select(k); };
+        list.appendChild(d);
+      });
+      var m = location.hash.match(/^#v(\d+)$/), want = m ? +m[1] : null;
+      var start = h.findIndex(function (e) { return e.v === want; });
+      select(start >= 0 ? start : h.length - 1);
+    });
+    document.getElementById("older").onclick = function () { select(cur - 1); };
+    document.getElementById("newer").onclick = function () { select(cur + 1); };
+  </script>
+</body>
+</html>
