@@ -77,6 +77,38 @@ Game.ui = (function () {
     });
   }
   function changed() { save("pluto.build", build); renderSetup(); }
+
+  // ---------- Handbuch (aus den Spieldaten erzeugt) ----------
+  function sprite(i) {
+    return '<span class="sprite" style="background-position:-' + (i % 12) * 32 + 'px -' + Math.floor(i / 12) * 32 + 'px"></span>';
+  }
+  function esc(s) { var d = document.createElement("div"); d.textContent = s; return d.innerHTML; }
+  function renderHandbook() {
+    var M = Game.MONSTERS, SP = Game.SPRITES, U = Game.UNREST, h = "";
+    h += "<h3>Monster</h3><table><tr><th></th><th>Name</th><th>Leben</th><th>Angriff</th><th>Rüstung</th><th>EP</th><th></th></tr>";
+    Object.keys(M).forEach(function (k) {
+      var m = M[k];
+      h += "<tr><td>" + sprite(SP[k]) + "</td><td><b>" + esc(m.name) + "</b></td><td>" + m.hp + "</td><td>" + m.atk + "</td><td>" + m.def +
+        "</td><td>" + (m.xp || "–") + "</td><td class='d'>" + esc(m.desc || "") + "</td></tr>";
+    });
+    h += "</table><h3>Gegenstände</h3><table>";
+    Object.keys(Game.ITEMS).forEach(function (k) {
+      var it = Game.ITEMS[k];
+      h += "<tr><td>" + sprite(SP[k]) + "</td><td><b>" + esc(it.name) + "</b></td><td class='d'>" + esc(it.desc || "") + "</td></tr>";
+    });
+    h += "</table><h3>Stufen</h3><p>Jeder Sieg bringt Erfahrungspunkte (EP). Für Stufe 2 braucht der Held " + Game.XP_PER_LEVEL +
+      " EP, für jede weitere Stufe " + Game.XP_PER_LEVEL + " mehr (Stufe 3: " + 2 * Game.XP_PER_LEVEL + " EP, Stufe 4: " + 3 * Game.XP_PER_LEVEL +
+      " EP …). Jeder Aufstieg: <b>+6 maximales Leben</b> (sofort geheilt) und <b>+1 Angriff</b>. Der Jäger bekommt +15 % EP.</p>";
+    h += "<h3>Kampf</h3><ul><li>Jeder Zug: erst der Held, dann alle wachen Monster.</li>" +
+      "<li>Der Held entscheidet in dieser Reihenfolge: Heiltrank trinken (wenn das Leben knapp ist) → Feuerball → zuschlagen (wenn ein Monster daneben steht) → weitergehen.</li>" +
+      "<li>Schaden = Angriff ±1 − Rüstung des Getroffenen, mindestens 1. Deine Rüstung fängt höchstens 60 % eines Treffers ab.</li>" +
+      "<li>Monster schlafen (z), bis du ihnen auf 5 Felder nahe kommst. Der Wächter wacht erst auf 3 Feldern auf.</li>" +
+      "<li>Nach Zug " + Game.MAX_TURNS + " ist Schluss.</li></ul>";
+    h += "<h3>Unruhe</h3><p>Wer trödelt, bekommt Besuch: Ab Zug " + U.start + " taucht alle " + U.every + " Züge irgendwo ein wacher Wanderer auf und sucht den Helden: " +
+      U.types.map(function (t) { return esc(M[t].name); }).join(", ") + " … Rasten und Umwege kosten also mehr als nur Zeit.</p>";
+    h += "<h3>Taktiken</h3><ul>" + Game.TACTICS.map(function (t) { return "<li><b>" + esc(t.name) + ":</b> " + esc(t.desc) + "</li>"; }).join("") + "</ul>";
+    $("handbook-body").innerHTML = h;
+  }
   function setSeed(s) {
     s = Math.max(1, Math.min(999999, Math.floor(+s) || 1));
     seed = s; save("pluto.seed", seed);
@@ -200,6 +232,8 @@ Game.ui = (function () {
       if (e.key === "ArrowRight") { e.preventDefault(); $("next").click(); }
       if (e.key === "ArrowLeft") { e.preventDefault(); $("prev").click(); }
     });
+    renderHandbook();
+    if (location.hash === "#handbuch") { $("handbook").open = true; setTimeout(function () { $("handbook").scrollIntoView(); }, 50); }
     renderSetup();
     // Direkt-Einsprung, z. B. index.html#play=80 (startet den Lauf und springt zu Zug 80)
     var m = location.hash.match(/^#play(?:=(\d+))?$/);

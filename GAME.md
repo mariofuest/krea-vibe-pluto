@@ -28,10 +28,16 @@ Shared notes for this team and its AI agents. Agents: read this at the start of 
 ## Versions and prompts
 - After finishing each user request: run `python3 tools/snapshot.py --prompt-file <file with the user's prompt> --start <time the prompt was sent> --note "<one line: what changed>" --agent "<agent/model>"`, then commit and push.
 
+## Balance (arena: 500 random builds × 40 dungeons, 26.11.2026)
+- Random builds win ~17 %, the default build loses (5 %). Every dungeon 1–30 has winners (hardest: 5 of 300 random builds).
+- Tactics: careful 12 %, balanced 18 %, hunter 22 %.
+- Fair ability comparison (same build, ability paid with stat points): all between −8 and +4 points. Phoenix and fireball slightly weak, stealth slightly strong.
+- Unrest: from turn 90, every 35 turns an awake wanderer spawns (goblin → ghost → orcs). Punishes slow play and resting.
+- One stat point ≈ 10 percentage points win rate; price abilities against that.
+
 ## Currently working on
 -
 
 ## Ideas / next steps
 - Dungeon #2 with frozen build and extra points (see Concept).
-- Balance (arena, 40 dungeons): ~45 % of random builds win; tactics 51/43/40 %. Stealth still weak, dungeon difficulty varies (11–88 %).
 - Sound effects.

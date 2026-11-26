@@ -81,6 +81,16 @@ aside h3 { margin: 6px 0 0; font: 700 13px ui-monospace, monospace; color: var(-
 #log li.kill, #log li.level { color: var(--gold); }
 #log li.item, #log li.potion { color: #9be7b0; }
 #log li.win { color: var(--green); font-weight: 700; }
+#handbook { grid-column: 1 / -1; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 4px 16px; }
+#handbook summary { cursor: pointer; font-weight: 700; padding: 10px 0; color: var(--gold); }
+#handbook h3 { font: 700 13px ui-monospace, monospace; text-transform: uppercase; color: var(--muted); margin: 14px 0 6px; }
+#handbook table { border-collapse: collapse; width: 100%; font-size: 14px; }
+#handbook td, #handbook th { padding: 4px 8px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: middle; }
+#handbook th { color: var(--muted); font-weight: 400; font-size: 12px; }
+#handbook td.d { color: var(--muted); }
+#handbook p, #handbook ul { margin: 4px 0 8px; color: var(--fg); font-size: 14px; }
+#handbook li { margin: 3px 0; }
+.sprite { display: inline-block; width: 32px; height: 32px; background: url(assets/tiny-dungeon.png) no-repeat; background-size: 384px 352px; image-rendering: pixelated; vertical-align: middle; }
 footer { text-align: center; padding: 10px 16px 24px; color: var(--muted); font-size: 13px; }
 footer a { color: var(--blue); }
 

@@ -10,7 +10,7 @@
   },
   {
     "v": 1,
-    "prompt": "Lass uns als Default-Namen Planeten nehmen, Repos dann krea-vibe-$planet. Leg zum Testen das generelle Public Repo an und erstelle krea-vibe-pluto zum Test. Wir führen den Test etwas weiter und testen tatsächlich was man wie schnell coden kann. Dazu sollen Prompts und Zeiten gespeichert sein, man soll zwischen Versionen hin und herschalten können auf irgendwo die Prompts sehen. Eigentliche Spiel-Idee: 2D Dungeon Crawler, nach einem Punktesystem kann man anfangs eine Variation von Fähigkeiten etc. auswählen (vgl https://labydx.com/). Clou: Das ganze ist ein Auto-Battler, man kann nach der Auswahl am Anfang nichts mehr entscheiden. Click auf Play spielt dann effektiv einen Film ab (man kann vorspulen, nur einen Zug weiterklicken etc.), bis man stirbt. Danach kann man Einstellungen ändern und es nochmal probieren (gleicher Dungeon, alles deterministisch). [Später, jetzt noch nicht: Schafft man einen Dungeon (oder ein Level?), werden gewählte Dinge eingefroren, es gibt neue Dinge und mit neuen Punkten kann man sich zusätzliche Sachen holen, dann auf zu Dungeon #2. Fail da und es geht beim Start von Dungeon #2 weiter.] Gib uns recht schnell was Spielbares.",
+    "prompt": "2D Dungeon Crawler, nach einem Punktesystem kann man anfangs eine Variation von Fähigkeiten etc. auswählen (vgl https://labydx.com/). Clou: Das ganze ist ein Auto-Battler, man kann nach der Auswahl am Anfang nichts mehr entscheiden. Click auf Play spielt dann effektiv einen Film ab (man kann vorspulen, nur einen Zug weiterklicken etc.), bis man stirbt. Danach kann man Einstellungen ändern und es nochmal probieren (gleicher Dungeon, alles deterministisch). [Später, jetzt noch nicht: Schafft man einen Dungeon (oder ein Level?), werden gewählte Dinge eingefroren, es gibt neue Dinge und mit neuen Punkten kann man sich zusätzliche Sachen holen, dann auf zu Dungeon #2. Fail da und es geht beim Start von Dungeon #2 weiter.] Gib uns recht schnell was Spielbares.",
     "start": "2026-11-26T21:51:35+01:00",
     "end": "2026-11-26T21:58:31.938843+01:00",
     "seconds": 416,
@@ -19,11 +19,20 @@
   },
   {
     "v": 2,
-    "prompt": "Okay, lad Kenny-Pakete. Der Dungeon ist zufällig erzeugt, ja? Können wir den Seed dazu angeben und eingeben lassen? Aktuell erscheint mir komplett defensiv die mit Abstand beste Taktik zu sein, das ist ungünstig. Erstell zudem Tooling, das verschiedene Builds auf verschiedenen Dungeons testet.\n\n[Nachtrag während der Arbeit: Letzter Prompt um 22:10 abgeschickt. Reine Prompt-Zeit ist auch wichtig.]",
+    "prompt": "Okay, lad Kenny-Pakete. Der Dungeon ist zufällig erzeugt, ja? Können wir den Seed dazu angeben und eingeben lassen? Aktuell erscheint mir komplett defensiv die mit Abstand beste Taktik zu sein, das ist ungünstig. Erstell zudem Tooling, das verschiedene Builds auf verschiedenen Dungeons testet.",
     "start": "2026-11-26T22:10:23+01:00",
     "end": "2026-11-26T22:19:11.282071+01:00",
     "seconds": 528,
     "agent": "Claude Code (Claude Opus 5.5)",
     "note": "Kenney-Grafik (Tiny Dungeon), Dungeon-Nummer eingeben/teilen, Neu-Balancing, Arena-Tool für Builds × Dungeons"
+  },
+  {
+    "v": 3,
+    "prompt": "Zufällige Siegeswahrscheinlichkeit ist etwas hoch, Idee ist schon, dass man erst verliert und dann den Build optimieren muss. Gibts ne Liste von möglichen Monstern etc. und deren Beschreibung? Erklärung was Level bringen etc fehlt auch noch. Vorsichtig ist immer noch am besten, welchen Vorteil haben die anderen beiden? Vllt. sollte lange Zeit im Dungeon irgendwie bestraft werden durch gewisse Ereignisse? Und füg mehr Fähigkeiten hinzu.",
+    "start": "2026-11-26T22:30:10+01:00",
+    "end": "2026-11-26T22:39:40.815446+01:00",
+    "seconds": 570,
+    "agent": "Claude Code (Claude Opus 5.5)",
+    "note": "Schwerer (17 % Zufalls-Siege), Handbuch mit Monstern/Stufen/Regeln, Unruhe gegen Trödeln, 6 neue Fähigkeiten, Taktik-Vorteile, fairer Fähigkeitsvergleich in der Arena"
   }
 ]

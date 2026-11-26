@@ -24,7 +24,8 @@ Game.render = function (ctx, dungeon, sim, frame, since) {
     var off = (size - S) / 2;
     ctx.drawImage(Game.sheet, (i % 12) * 16, Math.floor(i / 12) * 16, 16, 16, x * S - off, y * S - off * 1.5, size, size);
   }
-  function inSight(x, y) { return Math.max(Math.abs(x - hero.x), Math.abs(y - hero.y)) <= Game.SIGHT; }
+  var sight = hero.sight || Game.SIGHT;
+  function inSight(x, y) { return Math.max(Math.abs(x - hero.x), Math.abs(y - hero.y)) <= sight; }
   function seen(x, y) { var t = sim.seen[y * W + x]; return t >= 0 && t <= turn; }
 
   // Boden und Wände (nur Wände, die an Boden grenzen)
@@ -105,7 +106,7 @@ Game.render = function (ctx, dungeon, sim, frame, since) {
       ctx.fillStyle = "rgba(255,120,30,0.45)"; ctx.beginPath(); ctx.arc(cx, cy, S * 1.5, 0, 7); ctx.fill();
     }
     if (e.amount) {
-      var heal = e.kind === "potion";
+      var heal = e.kind === "potion" || e.kind === "phoenix";
       ctx.fillStyle = heal ? "#7dff9b" : e.target === "hero" ? "#ff6b6b" : "#ffffff";
       ctx.strokeStyle = "#000"; ctx.lineWidth = 2;
       ctx.font = "bold 10px system-ui, sans-serif"; ctx.textAlign = "center";

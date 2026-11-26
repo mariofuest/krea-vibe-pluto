@@ -71,13 +71,35 @@ function randomBuild(rnd) {
 }
 const rnd = G.rng(4242);
 const randoms = Array.from({ length: nRandom }, () => randomBuild(rnd));
-const allBuilds = [...Object.values(ARCHETYPES), ...randoms];
+// Paarvergleich: Build ohne Fähigkeit X gegen denselben Build mit X, bezahlt mit Wertepunkten
+const nPairs = Number(args.pairs || 60);
+const pairs = [];
+for (const ab of G.ABILITIES) {
+  let found = 0;
+  for (const b of randoms) {
+    if (found >= nPairs) break;
+    if (b.abilities.includes(ab.id)) continue;
+    const v = JSON.parse(JSON.stringify(b));
+    let pay = ab.cost;
+    for (const s of ["hp", "atk", "def", "hp", "atk", "def", "hp", "atk", "def", "hp", "atk", "def"]) {
+      if (pay === 0) break;
+      const top = ["hp", "atk", "def"].sort((x, y) => v.stats[y] - v.stats[x])[0];
+      if (v.stats[top] > 0) { v.stats[top]--; pay--; }
+    }
+    if (pay > 0) continue;
+    v.abilities.push(ab.id);
+    pairs.push({ ab: ab.id, base: randoms.indexOf(b), variant: v });
+    found++;
+  }
+}
+const allBuilds = [...Object.values(ARCHETYPES), ...randoms, ...pairs.map(p => p.variant)];
 
 // Arbeit auf Kerne verteilen
 const nWorkers = Math.min(os.cpus().length, 16);
 const chunks = Array.from({ length: nWorkers }, () => []);
 allBuilds.forEach((b, i) => chunks[i % nWorkers].push(i));
 const t0 = Date.now();
+console.log(`Starte ${allBuilds.length * seeds.length} Läufe auf ${nWorkers} Kernen …`);
 Promise.all(chunks.map(idx => new Promise((res, rej) => {
   const w = new Worker(__filename, { workerData: { jobs: [{ builds: idx.map(i => allBuilds[i]), seeds }] } });
   w.on("message", m => res({ idx, data: m[0] })); w.on("error", rej);
@@ -104,7 +126,9 @@ function report(results, secs) {
     console.log(`${name.padEnd(34)} ${pct(winRate(res))}   ${(wins.length ? (wins.reduce((s, r) => s + r[1], 0) / wins.length).toFixed(0) : "–").padStart(6)}        ${(res.reduce((s, r) => s + r[2], 0) / res.length).toFixed(1).padStart(4)}    ${topKiller ? topKiller[0] + " (" + topKiller[1] + "×)" : ""}`);
   });
 
-  const R = results.slice(Object.keys(ARCHETYPES).length), B = randoms;
+  const nA = Object.keys(ARCHETYPES).length;
+  const R = results.slice(nA, nA + randoms.length), B = randoms;
+  const V = results.slice(nA + randoms.length);
   const overall = R.reduce((s, r) => s + winRate(r), 0) / R.length;
   console.log(`\nZUFALLS-BUILDS: Ø ${pct(overall)} Siegquote\n`);
 
@@ -114,7 +138,16 @@ function report(results, secs) {
     console.log(`  ${t.name.padEnd(12)} ${pct(sel.reduce((s, r) => s + winRate(r), 0) / sel.length)}  (${sel.length} Builds)`);
   }
 
-  console.log("\nFÄHIGKEITEN (Siegquote mit / ohne, Differenz)");
+  console.log("\nFÄHIGKEITEN, FAIRER VERGLEICH (gleicher Build, Fähigkeit statt Wertepunkten)");
+  G.ABILITIES.map(a => {
+    const idx = pairs.map((p, i) => [p, i]).filter(([p]) => p.ab === a.id);
+    const without = idx.reduce((s, [p]) => s + winRate(R[p.base]), 0) / idx.length;
+    const withA = idx.reduce((s, [, i]) => s + winRate(V[i]), 0) / idx.length;
+    return [a, withA - without, idx.length];
+  }).sort((x, y) => y[1] - x[1]).forEach(([a, d, n]) =>
+    console.log(`  ${(a.icon + " " + a.name + " (" + a.cost + ")").padEnd(24)} ${(d >= 0 ? "+" : "") + (d * 100).toFixed(1).padStart(5)} Pkt  (${n} Paare)`));
+
+  console.log("\nFÄHIGKEITEN (Siegquote mit / ohne, Differenz; Vorsicht: vergleicht verschiedene Builds)");
   const rows = G.ABILITIES.map(a => {
     const w = R.filter((_, i) => B[i].abilities.includes(a.id)), wo = R.filter((_, i) => !B[i].abilities.includes(a.id));
     const rw = w.reduce((s, r) => s + winRate(r), 0) / w.length, rwo = wo.reduce((s, r) => s + winRate(r), 0) / wo.length;

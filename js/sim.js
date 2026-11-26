@@ -16,15 +16,18 @@ Game.simulate = function (dungeon, build, opts) {
     return s.base + s.per * (build.stats[id] || 0);
   };
   var tactic = build.tactic;
+  var sight = Game.SIGHT + (has.torch ? 3 : 0);
+  var spawnRnd = Game.rng(dungeon.seed * 31337 + 5);
 
   var hero = {
     x: dungeon.start.x, y: dungeon.start.y, maxHp: stat("hp"), atk: stat("atk"), def: stat("def"),
-    lvl: 1, xp: 0, potions: has.potions ? 2 : 0, gold: 0, fireCd: 0, dodgeCount: 0, kills: 0,
+    lvl: 1, xp: 0, potions: has.potions ? 3 : 0, gold: 0, fireCd: 0, dodgeCount: 0, kills: 0,
+    hits: 0, chests: 0, reborn: false,
   };
   hero.hp = hero.maxHp;
   var monsters = dungeon.monsters.map(function (m) {
     var t = Game.MONSTERS[m.type];
-    return { id: m.id, type: m.type, x: m.x, y: m.y, hp: t.hp, maxHp: t.hp, atk: t.atk, def: t.def, awake: false };
+    return { id: m.id, type: m.type, x: m.x, y: m.y, hp: t.hp, maxHp: t.hp, atk: t.atk, def: t.def, awake: false, poison: 0 };
   });
   var items = dungeon.items.map(function (i) { return { id: i.id, type: i.type, x: i.x, y: i.y, taken: false }; });
   var seen = new Int32Array(W * H).fill(-1);
@@ -88,8 +91,8 @@ Game.simulate = function (dungeon, build, opts) {
   }
 
   function reveal() {
-    for (var y = hero.y - Game.SIGHT; y <= hero.y + Game.SIGHT; y++)
-      for (var x = hero.x - Game.SIGHT; x <= hero.x + Game.SIGHT; x++)
+    for (var y = hero.y - sight; y <= hero.y + sight; y++)
+      for (var x = hero.x - sight; x <= hero.x + sight; x++)
         if (x >= 0 && y >= 0 && x < W && y < H && seen[y * W + x] < 0) seen[y * W + x] = turn;
   }
 
@@ -98,7 +101,7 @@ Game.simulate = function (dungeon, build, opts) {
     frames.push({
       turn: turn,
       hero: { x: hero.x, y: hero.y, hp: hero.hp, maxHp: hero.maxHp, atk: hero.atk, def: hero.def, lvl: hero.lvl,
-              xp: hero.xp, potions: hero.potions, gold: hero.gold, kills: hero.kills, fireCd: hero.fireCd },
+              xp: hero.xp, potions: hero.potions, gold: hero.gold, kills: hero.kills, fireCd: hero.fireCd, sight: sight },
       monsters: alive().map(function (m) { return { id: m.id, type: m.type, x: m.x, y: m.y, hp: m.hp, maxHp: m.maxHp, awake: m.awake }; }),
       items: items.filter(function (i) { return !i.taken; }).map(function (i) { return i.id; }),
       events: events,
@@ -108,7 +111,7 @@ Game.simulate = function (dungeon, build, opts) {
 
   function heroDamage() {
     var d = hero.atk;
-    if (has.berserk && hero.hp < hero.maxHp / 2) d = Math.round(d * 1.5);
+    if (has.berserk && hero.hp < hero.maxHp / 2) d = Math.round(d * 1.75);
     return d;
   }
   function hurtMonster(m, dmg, how) {
@@ -119,8 +122,13 @@ Game.simulate = function (dungeon, build, opts) {
       occ[m.y * W + m.x] = -1;
       var t = Game.MONSTERS[m.type];
       hero.kills++;
-      ev("kill", t.name + " besiegt" + (t.xp ? " (+" + t.xp + " EP)" : ""), { x: m.x, y: m.y });
-      hero.xp += t.xp;
+      var xp = tactic === "hunter" ? Math.round(t.xp * 1.15) : t.xp; // Jäger: +15 % Erfahrung
+      ev("kill", t.name + " besiegt" + (xp ? " (+" + xp + " EP)" : ""), { x: m.x, y: m.y });
+      hero.xp += xp;
+      if (has.frenzy && hero.hp > 0) {
+        var fh = Math.min(6, hero.maxHp - hero.hp);
+        if (fh > 0) { hero.hp += fh; ev("potion", "Siegesrausch: +" + fh + " Leben", { x: hero.x, y: hero.y, amount: fh, target: "hero" }); }
+      }
       while (hero.xp >= Game.XP_PER_LEVEL * hero.lvl) {
         hero.xp -= Game.XP_PER_LEVEL * hero.lvl;
         hero.lvl++; hero.maxHp += 6; hero.hp += 6; hero.atk += 1;
@@ -132,9 +140,14 @@ Game.simulate = function (dungeon, build, opts) {
     var dmg = Math.max(1, heroDamage() + Math.floor(rnd() * 3) - 1 - m.def);
     var ambush = has.stealth && !m.awake;
     if (ambush) dmg *= 3;
-    hurtMonster(m, dmg, ambush ? "Hinterhalt gegen" : "Schlag gegen");
+    if (has.torch) dmg += 1; // Fackel: Feuerschaden, ignoriert Rüstung
+    hero.hits++;
+    var crit = has.crit && hero.hits % 3 === 0;
+    if (crit) dmg = Math.round(dmg * 2.5);
+    if (has.poison && m.hp - dmg > 0) m.poison = 3;
+    hurtMonster(m, dmg, ambush ? "Hinterhalt gegen" : crit ? "Kritischer Treffer gegen" : "Schlag gegen");
     if (has.vampire) {
-      var heal = Math.max(1, Math.round(dmg * 0.3));
+      var heal = Math.max(1, Math.round(dmg * 0.25));
       hero.hp = Math.min(hero.maxHp, hero.hp + heal);
     }
   }
@@ -144,15 +157,21 @@ Game.simulate = function (dungeon, build, opts) {
       if (it.taken || it.x !== hero.x || it.y !== hero.y) return;
       it.taken = true;
       if (it.type === "potion") { hero.potions++; ev("item", "Heiltrank gefunden", { x: hero.x, y: hero.y }); }
-      if (it.type === "gold") { var g = 5 + Math.floor(rnd() * 11); hero.gold += g; ev("item", g + " Gold gefunden", { x: hero.x, y: hero.y }); }
+      if (it.type === "gold") {
+        var g = 5 + Math.floor(rnd() * 11); hero.gold += g; hero.chests++;
+        ev("item", "Truhe: " + g + " Gold", { x: hero.x, y: hero.y });
+        if (tactic === "balanced" && hero.chests % 3 === 0) { hero.potions++; ev("item", "In der Truhe liegt auch ein Heiltrank", { x: hero.x, y: hero.y }); }
+      }
       if (it.type === "sword") { hero.atk += 2; ev("item", "Schwert gefunden: +2 Angriff", { x: hero.x, y: hero.y }); }
-      if (it.type === "armor") { hero.def += 1; ev("item", "Rüstungsteil gefunden: +1 Rüstung", { x: hero.x, y: hero.y }); }
+      if (it.type === "armor") { hero.def += 1; ev("item", "Schild gefunden: +1 Rüstung", { x: hero.x, y: hero.y }); }
     });
   }
 
-  function heroTurn() {
-    if (has.regen && turn % 3 === 0 && hero.hp < hero.maxHp) hero.hp++;
-    if (hero.fireCd > 0) hero.fireCd--;
+  function heroTurn(extra) {
+    if (!extra) {
+      if (has.regen && turn % 2 === 0 && hero.hp < hero.maxHp) hero.hp++;
+      if (hero.fireCd > 0) hero.fireCd--;
+    }
 
     // 1. Trinken, wenn's knapp wird
     var limit = tactic === "careful" ? 0.5 : 0.35;
@@ -172,7 +191,7 @@ Game.simulate = function (dungeon, build, opts) {
         hero.fireCd = 5;
         ev("fireball", "Feuerball!", { x: t.x, y: t.y, fromX: hero.x, fromY: hero.y });
         var splash = alive().filter(function (m) { return m !== t && cheb(m, t) <= 1; });
-        hurtMonster(t, 10, "Feuerball trifft");
+        hurtMonster(t, 12, "Feuerball trifft");
         splash.forEach(function (m) { hurtMonster(m, 5, "Flammen treffen"); });
         return;
       }
@@ -188,8 +207,8 @@ Game.simulate = function (dungeon, build, opts) {
     // Vorsichtig: rasten, solange kein waches Monster in Sicht ist
     if (tactic === "careful" && hero.hp < hero.maxHp &&
         !awake.some(function (m) { return cheb(m, hero) <= Game.SIGHT; })) {
-      hero.hp = Math.min(hero.maxHp, hero.hp + 2);
-      if (turn % 5 === 0) ev("rest", "Rastet (+2 Leben)", { x: hero.x, y: hero.y });
+      hero.hp = Math.min(hero.maxHp, hero.hp + 3);
+      if (turn % 5 === 0) ev("rest", "Rastet (+3 Leben)", { x: hero.x, y: hero.y });
       return;
     }
     // 4. Bewegen
@@ -234,12 +253,35 @@ Game.simulate = function (dungeon, build, opts) {
     pickUp();
   }
 
+  // Unruhe: Wer trödelt, bekommt Besuch. Ab Zug UNREST.start alle UNREST.every Züge ein wacher Wanderer.
+  function unrest() {
+    var U = Game.UNREST, start = U.start + (has.stealth ? 60 : 0);
+    if (turn < start || (turn - start) % U.every !== 0) return;
+    var wave = (turn - start) / U.every;
+    var type = U.types[Math.min(wave, U.types.length - 1)];
+    var spots = [];
+    for (var y = 0; y < H; y++) for (var x = 0; x < W; x++)
+      if (T[y][x] === 0 && occ[y * W + x] < 0 && Math.max(Math.abs(x - hero.x), Math.abs(y - hero.y)) >= 8 &&
+          !(x === dungeon.exit.x && y === dungeon.exit.y)) spots.push([x, y]);
+    if (!spots.length) return;
+    var s = spots[Math.floor(spawnRnd() * spots.length)], t = Game.MONSTERS[type];
+    var m = { id: monsters.length, idx: monsters.length, type: type, x: s[0], y: s[1], hp: t.hp, maxHp: t.hp, atk: t.atk, def: t.def, awake: true, poison: 0 };
+    monsters.push(m);
+    occ[m.y * W + m.x] = m.idx;
+    ev("unrest", "Der Dungeon wird unruhig: " + t.name + " streift umher.", { x: m.x, y: m.y });
+  }
+
   function monstersTurn() {
     var heroMap = null; // Wegkarte zum Helden, nur berechnen, wenn ein waches Monster laufen will
     alive().forEach(function (m) {
       if (hero.hp <= 0) return;
       var t = Game.MONSTERS[m.type];
-      var notice = t.boss ? (has.stealth ? 1 : 3) : (has.stealth ? 2 : 5);
+      if (m.poison > 0) {
+        m.poison--;
+        hurtMonster(m, 3, "Gift zehrt an");
+        if (m.hp <= 0) return;
+      }
+      var notice = t.boss ? (has.stealth ? 1 : 3) : (has.stealth ? 0 : 5); // Schleichen: Schläfer wachen nur durch Angriffe auf
       if (!m.awake && cheb(m, hero) <= notice) {
         m.awake = true;
         if (t.boss) ev("wake", "Der Höhlenwächter erhebt sich! Erst wenn er fällt, öffnet sich der Ausgang.", { x: m.x, y: m.y });
@@ -252,10 +294,15 @@ Game.simulate = function (dungeon, build, opts) {
         }
         var raw = m.atk + Math.floor(rnd() * 3) - 1;
         var dmg = Math.max(Math.ceil(raw * 0.4), raw - hero.def); // Rüstung fängt höchstens 60 % ab
+        if (has.torch && (m.type === "skeleton" || m.type === "rat")) dmg = Math.max(1, Math.round(dmg / 2)); // fürchten das Licht
         hero.hp -= dmg;
         ev("hurt", t.name + " trifft dich: " + dmg + " Schaden", { x: hero.x, y: hero.y, amount: dmg, target: "hero" });
         if (has.thorns) hurtMonster(m, 3, "Dornen stechen");
-        if (hero.hp <= 0) { hero.hp = 0; result = { won: false, turn: turn, killer: t.name }; ev("death", "Getötet von: " + t.name, { x: hero.x, y: hero.y }); }
+        if (hero.hp <= 0 && has.phoenix && !hero.reborn) {
+          hero.reborn = true;
+          hero.hp = Math.round(hero.maxHp * 0.5);
+          ev("phoenix", "Die Phönixfeder verglüht: wiederbelebt mit " + hero.hp + " Leben!", { x: hero.x, y: hero.y, amount: hero.hp, target: "hero" });
+        } else if (hero.hp <= 0) { hero.hp = 0; result = { won: false, turn: turn, killer: t.name }; ev("death", "Getötet von: " + t.name, { x: hero.x, y: hero.y }); }
         return;
       }
       if (t.boss) return; // der Wächter verlässt seinen Posten nicht
@@ -276,12 +323,14 @@ Game.simulate = function (dungeon, build, opts) {
   snapshot();
   while (!result && turn < Game.MAX_TURNS) {
     turn++;
-    heroTurn();
+    heroTurn(false);
+    if (has.swift && turn % 3 === 0 && !result) heroTurn(true); // Flink: jeder 3. Zug doppelt
     var bossAlive = alive().some(function (m) { return Game.MONSTERS[m.type].boss; });
     if (!bossAlive && hero.x === dungeon.exit.x && hero.y === dungeon.exit.y) {
       result = { won: true, turn: turn };
       ev("win", "Ausgang erreicht! Dungeon geschafft!", { x: hero.x, y: hero.y });
     } else {
+      unrest();
       monstersTurn();
     }
     reveal();
