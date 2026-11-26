@@ -7,39 +7,57 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <header>
+  <header class="top">
     <h1>Pluto: Auto-Dungeon</h1>
-    <p>Stell deinen Helden zusammen. Danach entscheidet er alles selbst.</p>
+    <p>Du rüstest den Helden aus. Kämpfen tut er allein.</p>
   </header>
 
   <!-- Auswahl -->
   <main id="setup">
-    <section class="col">
-      <div class="budget"><span id="points">12</span> von <span id="budget">12</span> Punkten übrig</div>
+    <aside class="sheet" aria-label="Dein Held">
+      <div class="portrait"><span class="sprite knight" role="img" aria-label="Ritter"></span></div>
+      <dl class="vitals">
+        <div><dt><span class="sprite s-potion"></span>Leben</dt><dd id="v-hp"></dd></div>
+        <div><dt><span class="sprite s-sword"></span>Angriff</dt><dd id="v-atk"></dd></div>
+        <div><dt><span class="sprite s-armor"></span>Rüstung</dt><dd id="v-def"></dd></div>
+      </dl>
+      <p id="chosen" class="chosen"></p>
+      <div class="purse">
+        <div id="gems" class="gems" aria-hidden="true"></div>
+        <p id="points" class="points"></p>
+      </div>
       <div class="seedrow">
-        <label for="seed">Dungeon Nr.</label>
+        <label for="seed">Dungeon</label>
         <input id="seed" type="number" min="1" max="999999" value="1">
-        <button id="dice" title="Zufälliger Dungeon">🎲</button>
-        <small>Gleiche Nummer = gleicher Dungeon. Zum Teilen: Link mit <code>?seed=…</code></small>
+        <button id="dice" type="button" title="Zufälligen Dungeon wählen" aria-label="Zufälligen Dungeon wählen">🎲</button>
       </div>
-      <h2>Werte</h2>
-      <div id="stats"></div>
-      <h2>Taktik <small>kostenlos</small></h2>
-      <div id="tactics" class="cards three"></div>
-    </section>
-    <section class="col">
-      <h2>Fähigkeiten</h2>
-      <div id="abilities" class="cards"></div>
-      <div class="actions">
-        <button id="start" class="big">▶ Play</button>
-        <button id="reset" class="ghost">Standard-Build</button>
-      </div>
-      <h2>Bisherige Versuche <button id="clear" class="ghost small">leeren</button></h2>
-      <ol id="attempts"></ol>
-      <p class="hint">Gleicher Dungeon, gleicher Build = gleicher Ablauf. Der Ausgang öffnet sich erst, wenn der Höhlenwächter besiegt ist.</p>
-    </section>
+      <button id="start" class="descend" type="button">Hinabsteigen</button>
+      <p class="fine">Gleicher Dungeon und gleiche Ausrüstung ergeben immer denselben Lauf. Die Tür zum Ausgang öffnet sich erst, wenn der Höhlenwächter fällt.</p>
+    </aside>
+
+    <div class="choices">
+      <section>
+        <h2>Werte</h2>
+        <div id="stats"></div>
+      </section>
+      <section>
+        <h2>Taktik</h2>
+        <div id="tactics" class="segmented" role="radiogroup" aria-label="Taktik"></div>
+        <p id="tactic-desc" class="tactic-desc"></p>
+      </section>
+      <section>
+        <h2>Fähigkeiten</h2>
+        <div id="abilities" class="abilities"></div>
+      </section>
+      <section class="runs">
+        <h2>Bisherige Läufe</h2>
+        <ol id="attempts"></ol>
+        <p class="runs-actions"><button id="reset" class="link" type="button">Ausrüstung zurücksetzen</button> <button id="clear" class="link" type="button">Läufe löschen</button></p>
+      </section>
+    </div>
+
     <details id="handbook">
-      <summary>📖 Handbuch: Monster, Gegenstände, Stufen, Regeln</summary>
+      <summary>Handbuch: Monster, Gegenstände, Stufen und Regeln</summary>
       <div id="handbook-body"></div>
     </details>
   </main>
@@ -51,8 +69,8 @@
       <div id="result" hidden>
         <h2 id="resulttitle"></h2>
         <p id="resulttext"></p>
-        <button id="change" class="big">Build ändern</button>
-        <button id="again" class="ghost">Nochmal ansehen</button>
+        <button id="change" class="big" type="button">Ausrüstung ändern</button>
+        <button id="again" class="ghost" type="button">Nochmal ansehen</button>
       </div>
       <div class="controls">
         <button id="first" title="Zum Anfang">⏮</button>
@@ -71,11 +89,15 @@
       <div id="herostats"></div>
       <h3>Logbuch</h3>
       <ol id="log"></ol>
-      <button id="back" class="ghost">← Build ändern</button>
+      <button id="back" type="button">Ausrüstung ändern</button>
     </aside>
   </main>
 
-  <footer><a href="history/">Versionen &amp; Prompts</a> · <a href="https://mariofuest.github.io/krea-vibe/">Alle Spiele</a> · Grafik: <a href="https://kenney.nl/assets/tiny-dungeon">Kenney Tiny Dungeon</a> (CC0)</footer>
+  <footer>
+    <a href="history/">Versionen und Prompts</a>
+    <a href="https://mariofuest.github.io/krea-vibe/">Alle Spiele des Workshops</a>
+    <span>Grafik: <a href="https://kenney.nl/assets/tiny-dungeon">Kenney Tiny Dungeon</a> (CC0), Schriften: Pixelify Sans und Press Start 2P (OFL)</span>
+  </footer>
 
   <script src="js/data.js"></script>
   <script src="js/dungeon.js"></script>

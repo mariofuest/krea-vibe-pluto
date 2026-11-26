@@ -13,66 +13,94 @@ Game.ui = (function () {
   // ---------- Auswahl ----------
   function renderSetup() {
     var spent = Game.buildCost(build), left = Game.BUDGET - spent;
-    $("points").textContent = left;
-    $("points").parentElement.classList.toggle("empty", left === 0);
+    var val = function (id) { var s = Game.STATS.find(function (x) { return x.id === id; }); return s.base + s.per * (build.stats[id] || 0); };
 
+    // Heldenbogen
+    $("v-hp").textContent = val("hp");
+    $("v-atk").textContent = val("atk");
+    $("v-def").textContent = val("def");
+    var tac = Game.TACTICS.find(function (t) { return t.id === build.tactic; });
+    var abs = build.abilities.map(function (id) { var a = Game.ABILITIES.find(function (x) { return x.id === id; }); return a.icon + " " + a.name; });
+    $("chosen").textContent = tac.name + (abs.length ? ", " + abs.join(", ") : ", ohne Fähigkeiten");
+    $("gems").innerHTML = "";
+    for (var g = 0; g < Game.BUDGET; g++) { var i = document.createElement("i"); if (g < left) i.className = "full"; $("gems").appendChild(i); }
+    $("points").textContent = left === 0 ? "Alle " + Game.BUDGET + " Punkte verteilt" : left === 1 ? "1 Punkt übrig" : left + " Punkte übrig";
+
+    // Werte
     $("stats").innerHTML = "";
     Game.STATS.forEach(function (s) {
       var v = build.stats[s.id] || 0;
       var row = document.createElement("div");
       row.className = "stat";
-      row.innerHTML = '<div><b></b> <span class="val"></span><small></small></div>' +
-        '<div class="pips"></div><button class="minus" aria-label="weniger">−</button><button class="plus" aria-label="mehr">+</button>';
+      row.innerHTML = '<div class="stat-text"><b></b><small></small></div>' +
+        '<div class="stepper"><button type="button" class="minus"></button><span class="count"></span><button type="button" class="plus"></button></div>';
       row.querySelector("b").textContent = s.name;
-      row.querySelector(".val").textContent = s.base + s.per * v;
       row.querySelector("small").textContent = s.desc;
-      var pips = row.querySelector(".pips");
-      for (var i = 0; i < s.max; i++) { var p = document.createElement("i"); if (i < v) p.className = "on"; pips.appendChild(p); }
-      row.querySelector(".minus").disabled = v <= 0;
-      row.querySelector(".plus").disabled = v >= s.max || left <= 0;
-      row.querySelector(".minus").onclick = function () { build.stats[s.id]--; changed(); };
-      row.querySelector(".plus").onclick = function () { build.stats[s.id] = v + 1; changed(); };
+      row.querySelector(".count").textContent = v + " / " + s.max;
+      var minus = row.querySelector(".minus"), plus = row.querySelector(".plus");
+      minus.textContent = "−"; plus.textContent = "+";
+      minus.setAttribute("aria-label", s.name + " verringern");
+      plus.setAttribute("aria-label", s.name + " erhöhen");
+      minus.disabled = v <= 0;
+      plus.disabled = v >= s.max || left <= 0;
+      minus.onclick = function () { build.stats[s.id]--; changed(); };
+      plus.onclick = function () { build.stats[s.id] = v + 1; changed(); };
       $("stats").appendChild(row);
     });
 
+    // Taktik
+    $("tactics").innerHTML = "";
+    Game.TACTICS.forEach(function (t) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.setAttribute("role", "radio");
+      b.setAttribute("aria-checked", build.tactic === t.id);
+      b.textContent = t.name;
+      b.onclick = function () { build.tactic = t.id; changed(); };
+      $("tactics").appendChild(b);
+    });
+    $("tactic-desc").textContent = tac.desc;
+
+    // Fähigkeiten
     $("abilities").innerHTML = "";
     Game.ABILITIES.forEach(function (a) {
       var on = build.abilities.indexOf(a.id) >= 0;
-      var b = document.createElement("button");
-      b.className = "ability" + (on ? " on" : "");
-      b.disabled = !on && a.cost > left;
-      b.innerHTML = '<span class="icon"></span><span class="name"></span><span class="cost"></span><small></small>';
-      b.querySelector(".icon").textContent = a.icon;
-      b.querySelector(".name").textContent = a.name;
-      b.querySelector(".cost").textContent = a.cost + " P";
-      b.querySelector("small").textContent = a.desc;
-      b.onclick = function () {
+      var row = document.createElement("label");
+      row.className = "ability" + (on ? " on" : "");
+      row.innerHTML = '<input type="checkbox"><span class="icon"></span><span class="ab-text"><b></b><small></small></span><span class="cost"></span>';
+      var box = row.querySelector("input");
+      box.checked = on;
+      box.disabled = !on && a.cost > left;
+      if (box.disabled) row.classList.add("locked");
+      row.querySelector(".icon").textContent = a.icon;
+      row.querySelector("b").textContent = a.name;
+      row.querySelector("small").textContent = a.desc;
+      var cost = row.querySelector(".cost");
+      cost.textContent = a.cost;
+      cost.appendChild(document.createElement("i"));
+      cost.setAttribute("aria-label", a.cost === 1 ? "kostet 1 Punkt" : "kostet " + a.cost + " Punkte");
+      box.onchange = function () {
         if (on) build.abilities = build.abilities.filter(function (x) { return x !== a.id; });
         else build.abilities.push(a.id);
         changed();
       };
-      $("abilities").appendChild(b);
+      $("abilities").appendChild(row);
     });
 
-    $("tactics").innerHTML = "";
-    Game.TACTICS.forEach(function (t) {
-      var b = document.createElement("button");
-      b.className = "tactic" + (build.tactic === t.id ? " on" : "");
-      b.innerHTML = '<span class="name"></span><small></small>';
-      b.querySelector(".name").textContent = t.name;
-      b.querySelector("small").textContent = t.desc;
-      b.onclick = function () { build.tactic = t.id; changed(); };
-      $("tactics").appendChild(b);
-    });
-
+    // Läufe
     $("seed").value = seed;
-    $("attempts").innerHTML = attempts.length ? "" : "<li class='none'>Noch kein Versuch.</li>";
+    $("attempts").innerHTML = attempts.length ? "" : "<li class='none'>Noch kein Lauf. Verteile deine Punkte und steig hinab.</li>";
     attempts.slice().reverse().forEach(function (a) {
       var li = document.createElement("li");
       li.className = a.won ? "won" : "lost";
-      li.textContent = "#" + a.n + "  Dungeon " + (a.seed || 1) + " · " + a.summary + "  →  " + (a.won ? "🏆 geschafft in Zug " + a.turn : "💀 Zug " + a.turn + (a.killer ? ", " + a.killer : ""));
-      li.title = "Klicken, um diesen Build zu laden";
-      li.onclick = function () { build = JSON.parse(JSON.stringify(a.build)); setSeed(a.seed || 1); changed(); };
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.innerHTML = '<span class="res"></span><span class="what"></span>';
+      btn.querySelector(".res").textContent = a.won ? "Geschafft in Zug " + a.turn : "Gestorben in Zug " + a.turn + (a.killer ? " (" + a.killer + ")" : "");
+      btn.querySelector(".what").textContent = "Dungeon " + (a.seed || 1) + ", " + a.summary;
+      btn.title = "Diese Ausrüstung und diesen Dungeon laden";
+      btn.onclick = function () { build = JSON.parse(JSON.stringify(a.build)); setSeed(a.seed || 1); changed(); };
+      li.appendChild(btn);
       $("attempts").appendChild(li);
     });
   }
@@ -119,7 +147,7 @@ Game.ui = (function () {
   function summary(b) {
     var t = Game.TACTICS.find(function (x) { return x.id === b.tactic; });
     var ab = b.abilities.map(function (id) { return Game.ABILITIES.find(function (a) { return a.id === id; }).icon; }).join("");
-    return "L" + b.stats.hp + " A" + b.stats.atk + " R" + b.stats.def + " " + ab + " " + t.name;
+    return "Leben " + b.stats.hp + ", Angriff " + b.stats.atk + ", Rüstung " + b.stats.def + ", " + t.name + (ab ? " " + ab : "");
   }
 
   // ---------- Abspielen ----------
@@ -171,10 +199,10 @@ Game.ui = (function () {
     var r = sim.result;
     $("result").hidden = false;
     $("result").className = r.won ? "won" : "lost";
-    $("resulttitle").textContent = r.won ? "🏆 Dungeon geschafft!" : "💀 Gestorben";
+    $("resulttitle").textContent = r.won ? "Dungeon geschafft" : "Gestorben";
     $("resulttext").textContent = r.won
-      ? "In " + r.turn + " Zügen. Versuch es mit einem anderen Build noch schneller?"
-      : r.timeout ? "Die Zeit ist abgelaufen (Zug " + r.turn + ")." : "In Zug " + r.turn + ", besiegt von: " + r.killer + ". Ändere deinen Build und versuch's nochmal.";
+      ? "In " + r.turn + " Zügen. Schaffst du es mit anderer Ausrüstung schneller?"
+      : r.timeout ? "Die Zeit ist abgelaufen (Zug " + r.turn + ")." : "In Zug " + r.turn + ", besiegt von: " + r.killer + ". Ändere die Ausrüstung und steig nochmal hinab.";
   }
 
   function tick(t) {
@@ -200,7 +228,6 @@ Game.ui = (function () {
     build = load("pluto.build", null);
     if (!build || Game.buildCost(build) > Game.BUDGET) build = Game.defaultBuild();
     attempts = load("pluto.attempts", []);
-    $("budget").textContent = Game.BUDGET;
 
     $("start").onclick = play;
     $("seed").onchange = function () { setSeed(this.value); renderSetup(); };

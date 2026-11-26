@@ -34,5 +34,14 @@
     "seconds": 570,
     "agent": "Claude Code (Claude Opus 5.5)",
     "note": "Schwerer (17 % Zufalls-Siege), Handbuch mit Monstern/Stufen/Regeln, Unruhe gegen Trödeln, 6 neue Fähigkeiten, Taktik-Vorteile, fairer Fähigkeitsvergleich in der Arena"
+  },
+  {
+    "v": 4,
+    "prompt": "Gut, die Startseite sieht unglaub nach KI generierter Website aus. Pass das Layout an.",
+    "start": "2026-11-26T22:42:39+01:00",
+    "end": "2026-11-26T22:45:37.964888+01:00",
+    "seconds": 178,
+    "agent": "Claude Code (Claude Opus 5.5)",
+    "note": "Neues Layout: Heldenbogen mit großem Ritter, Farben aus dem Tileset, Pixel-Schriften, Fähigkeiten als Liste, Taktik als Umschalter"
   }
 ]
