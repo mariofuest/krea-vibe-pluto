@@ -43,5 +43,14 @@
     "seconds": 178,
     "agent": "Claude Code (Claude Opus 5.5)",
     "note": "Neues Layout: Heldenbogen mit großem Ritter, Farben aus dem Tileset, Pixel-Schriften, Fähigkeiten als Liste, Taktik als Umschalter"
+  },
+  {
+    "v": 5,
+    "prompt": "Bug: Die Info links scrollt auch über Handbuch: Monster, Gegenstände, Stufen und Regeln",
+    "start": "2026-11-26T22:49:19+01:00",
+    "end": "2026-11-26T22:49:58.149086+01:00",
+    "seconds": 39,
+    "agent": "Claude Code (Claude Opus 5.5)",
+    "note": "Fix: Heldenbogen klebt nur noch neben der Auswahl, nicht mehr über dem Handbuch"
   }
 ]

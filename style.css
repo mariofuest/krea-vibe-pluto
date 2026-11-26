@@ -22,7 +22,9 @@ a { color: var(--sand); }
 .top p { margin: 10px 0 0; color: var(--mist); font-size: 18px; }
 
 /* ---------- Auswahl ---------- */
-#setup { display: grid; grid-template-columns: 320px 1fr; gap: 36px; max-width: 1180px; margin: 0 auto; padding: 20px 20px 32px; align-items: start; }
+#setup { max-width: 1180px; margin: 0 auto; padding: 20px 20px 32px; }
+/* Der Heldenbogen klebt nur innerhalb dieses Rasters, nicht über dem Handbuch */
+.setup-grid { display: grid; grid-template-columns: 320px 1fr; gap: 36px; align-items: start; margin-bottom: 36px; }
 
 .sheet { position: sticky; top: 16px; background: var(--stone); clip-path: var(--notch); padding: 22px 20px 20px; box-shadow: inset 0 -6px 0 var(--deep); }
 .portrait { height: 168px; display: grid; place-items: end center; background: linear-gradient(var(--deep) 0 72%, var(--sand-lo) 72% 76%, #7a4a3a 76%); margin: -22px -20px 18px; }
@@ -92,7 +94,7 @@ a { color: var(--sand); }
 .runs-actions { margin: 10px 0 0; display: flex; gap: 18px; }
 button.link { border: 0; background: none; padding: 0; color: var(--sand); text-decoration: underline; text-underline-offset: 3px; }
 
-#handbook { grid-column: 1 / -1; background: var(--deep); padding: 4px 20px; }
+#handbook { background: var(--deep); padding: 4px 20px; }
 #handbook summary { cursor: pointer; padding: 14px 0; font: 600 21px var(--pixel); color: var(--sand); }
 #handbook h3 { font: 600 20px var(--pixel); margin: 18px 0 6px; color: var(--chalk); }
 #handbook table { border-collapse: collapse; width: 100%; font-size: 15px; }
@@ -144,7 +146,7 @@ footer { max-width: 1180px; margin: 0 auto; padding: 18px 20px 30px; display: fl
 
 @media (max-width: 1150px) { #play { grid-template-columns: 1fr; } #play aside { max-height: none; } }
 @media (max-width: 900px) {
-  #setup { grid-template-columns: 1fr; gap: 28px; }
+  .setup-grid { grid-template-columns: 1fr; gap: 28px; }
   .sheet { position: static; }
   .abilities { grid-template-columns: 1fr; }
 }

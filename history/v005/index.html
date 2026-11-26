@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pluto: Auto-Dungeon</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="top">
+    <h1>Pluto: Auto-Dungeon</h1>
+    <p>Du rüstest den Helden aus. Kämpfen tut er allein.</p>
+  </header>
+
+  <!-- Auswahl -->
+  <main id="setup">
+   <div class="setup-grid">
+    <aside class="sheet" aria-label="Dein Held">
+      <div class="portrait"><span class="sprite knight" role="img" aria-label="Ritter"></span></div>
+      <dl class="vitals">
+        <div><dt><span class="sprite s-potion"></span>Leben</dt><dd id="v-hp"></dd></div>
+        <div><dt><span class="sprite s-sword"></span>Angriff</dt><dd id="v-atk"></dd></div>
+        <div><dt><span class="sprite s-armor"></span>Rüstung</dt><dd id="v-def"></dd></div>
+      </dl>
+      <p id="chosen" class="chosen"></p>
+      <div class="purse">
+        <div id="gems" class="gems" aria-hidden="true"></div>
+        <p id="points" class="points"></p>
+      </div>
+      <div class="seedrow">
+        <label for="seed">Dungeon</label>
+        <input id="seed" type="number" min="1" max="999999" value="1">
+        <button id="dice" type="button" title="Zufälligen Dungeon wählen" aria-label="Zufälligen Dungeon wählen">🎲</button>
+      </div>
+      <button id="start" class="descend" type="button">Hinabsteigen</button>
+      <p class="fine">Gleicher Dungeon und gleiche Ausrüstung ergeben immer denselben Lauf. Die Tür zum Ausgang öffnet sich erst, wenn der Höhlenwächter fällt.</p>
+    </aside>
+
+    <div class="choices">
+      <section>
+        <h2>Werte</h2>
+        <div id="stats"></div>
+      </section>
+      <section>
+        <h2>Taktik</h2>
+        <div id="tactics" class="segmented" role="radiogroup" aria-label="Taktik"></div>
+        <p id="tactic-desc" class="tactic-desc"></p>
+      </section>
+      <section>
+        <h2>Fähigkeiten</h2>
+        <div id="abilities" class="abilities"></div>
+      </section>
+      <section class="runs">
+        <h2>Bisherige Läufe</h2>
+        <ol id="attempts"></ol>
+        <p class="runs-actions"><button id="reset" class="link" type="button">Ausrüstung zurücksetzen</button> <button id="clear" class="link" type="button">Läufe löschen</button></p>
+      </section>
+    </div>
+   </div>
+
+    <details id="handbook">
+      <summary>Handbuch: Monster, Gegenstände, Stufen und Regeln</summary>
+      <div id="handbook-body"></div>
+    </details>
+  </main>
+
+  <!-- Abspielen -->
+  <main id="play" hidden>
+    <div class="stage">
+      <canvas id="game" width="640" height="416"></canvas>
+      <div id="result" hidden>
+        <h2 id="resulttitle"></h2>
+        <p id="resulttext"></p>
+        <button id="change" class="big" type="button">Ausrüstung ändern</button>
+        <button id="again" class="ghost" type="button">Nochmal ansehen</button>
+      </div>
+      <div class="controls">
+        <button id="first" title="Zum Anfang">⏮</button>
+        <button id="prev" title="Einen Zug zurück (←)">◀</button>
+        <button id="playpause" class="pp" title="Abspielen/Pause (Leertaste)">⏸</button>
+        <button id="next" title="Einen Zug weiter (→)">▶</button>
+        <button id="last" title="Zum Ende">⏭</button>
+        <input id="timeline" type="range" min="0" value="0" aria-label="Zeitleiste">
+        <span id="turn"></span>
+        <span id="dname"></span>
+        <span id="speeds"></span>
+      </div>
+    </div>
+    <aside>
+      <div class="hpbar"><div id="hp"></div><span id="hptext"></span></div>
+      <div id="herostats"></div>
+      <h3>Logbuch</h3>
+      <ol id="log"></ol>
+      <button id="back" type="button">Ausrüstung ändern</button>
+    </aside>
+  </main>
+
+  <footer>
+    <a href="../">Versionen und Prompts</a>
+    <a href="https://mariofuest.github.io/krea-vibe/">Alle Spiele des Workshops</a>
+    <span>Grafik: <a href="https://kenney.nl/assets/tiny-dungeon">Kenney Tiny Dungeon</a> (CC0), Schriften: Pixelify Sans und Press Start 2P (OFL)</span>
+  </footer>
+
+  <script src="js/data.js"></script>
+  <script src="js/dungeon.js"></script>
+  <script src="js/sim.js"></script>
+  <script src="js/render.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
