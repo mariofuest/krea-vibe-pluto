@@ -19,7 +19,9 @@
     .v { padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; margin-bottom: 8px; cursor: pointer; background: var(--panel); }
     .v.on { border-color: var(--gold); box-shadow: inset 0 0 0 1px var(--gold); }
     .v .meta { display: flex; justify-content: space-between; font: 12px ui-monospace, Menlo, monospace; color: var(--muted); }
-    .v .meta b { color: var(--gold); font-size: 14px; }
+    .v .meta { gap: 8px; }
+    .v .meta b { color: var(--gold); font-size: 14px; white-space: nowrap; }
+    .v .meta span { text-align: right; }
     .v .note { margin-top: 4px; font-size: 13.5px; }
     .v .prompt { margin-top: 6px; font-size: 13px; color: var(--muted); white-space: pre-wrap; max-height: 4.4em; overflow: hidden; }
     .v.on .prompt { max-height: none; color: var(--fg); }
@@ -63,15 +65,25 @@
     }
     fetch("history.json", { cache: "no-store" }).then(function (r) { return r.json(); }).then(function (h) {
       versions = h;
-      var total = h.reduce(function (s, e) { return s + (e.v > 0 ? e.seconds : 0); }, 0);
-      document.getElementById("sum").textContent = (h.length - 1) + (h.length === 2 ? " Prompt" : " Prompts") + ", zusammen " + fmtDur(total) + " Arbeitszeit";
+      // Prompt-Zeit: vom fertigen Vorgänger bis zum Absenden des Prompts (Lesen, Spielen, Nachdenken, Schreiben)
+      h.forEach(function (e, k) {
+        var prev = h[k - 1];
+        var gap = prev && prev.v > 0 ? (new Date(e.start) - new Date(prev.end)) / 1000 : -1;
+        e.human = gap > 0 ? gap : null;
+      });
+      var ai = h.reduce(function (s, e) { return s + (e.v > 0 ? e.seconds : 0); }, 0);
+      var human = h.reduce(function (s, e) { return s + (e.human || 0); }, 0);
+      document.getElementById("sum").textContent = (h.length - 1) + (h.length === 2 ? " Prompt" : " Prompts") +
+        " · 🤖 KI " + fmtDur(ai) + (human ? " · ✍️ Prompts " + fmtDur(human) : "");
       var list = document.getElementById("list");
       h.slice().reverse().forEach(function (e) {
         var k = h.indexOf(e), d = document.createElement("div");
         d.className = "v"; d.id = "v" + k;
         d.innerHTML = '<div class="meta"><b></b><span></span></div><div class="note"></div><div class="prompt"></div>';
         d.querySelector("b").textContent = "Version " + e.v;
-        d.querySelector(".meta span").textContent = fmtTime(e.start) + (e.v > 0 ? " · " + fmtDur(e.seconds) : "");
+        d.querySelector(".meta span").textContent = fmtTime(e.start) +
+          (e.human ? " · ✍️ " + fmtDur(e.human) : "") + (e.v > 0 ? " · 🤖 " + fmtDur(e.seconds) : "");
+        d.querySelector(".meta span").title = "✍️ Prompt-Zeit: vom vorigen Stand bis zum Absenden des Prompts. 🤖 KI-Zeit: vom Absenden bis zum fertigen Stand.";
         d.querySelector(".note").textContent = e.note || "";
         d.querySelector(".prompt").textContent = e.prompt;
         d.onclick = function () { select(k); };

@@ -7,7 +7,7 @@ Shared notes for this team and its AI agents. Agents: read this at the start of 
 
 ## Concept
 - 2D dungeon crawler as an auto-battler. Before the run the player spends 12 points on stats (life, attack, armour), abilities and a tactic. After "Play" the player decides nothing more: the whole run is simulated in advance and played back like a film (pause, step, rewind, speed).
-- Same dungeon (seed 1) + same build = exactly the same run. Die, change the build, retry.
+- Same dungeon (seed, entered on the setup screen or via `?seed=17`) + same build = exactly the same run. Die, change the build, retry.
 - The exit only opens once the boss (Höhlenwächter) in front of it is dead.
 - Later (not yet): clearing a dungeon freezes the build, new options and new points unlock, then dungeon #2; failing there restarts at dungeon #2.
 
@@ -21,7 +21,8 @@ Shared notes for this team and its AI agents. Agents: read this at the start of 
 - `js/sim.js`: the simulation (hero AI, monster AI, combat); returns one frame per turn.
 - `js/render.js`: draws a frame on the canvas (fog of war, effects).
 - `js/ui.js`: setup screen, playback controls, attempts list (localStorage).
-- `tools/balance.js`: `node tools/balance.js` runs sample builds and 400 random builds without a browser.
+- `tools/arena.js`: `node tools/arena.js [--seeds 1-40] [--random 600]` tests named and random builds on many dungeons (all CPU cores) and reports win rates by tactic, ability, stat, best builds and hardest/easiest dungeons. Use it after every balance change.
+- `assets/tiny-dungeon.png`: Kenney Tiny Dungeon tilesheet (CC0), sprite indices in `js/render.js`.
 - `tools/snapshot.py` + `history/`: every prompt is stored as a playable version with prompt text and timing (see `history/index.html`).
 
 ## Versions and prompts
@@ -32,5 +33,5 @@ Shared notes for this team and its AI agents. Agents: read this at the start of 
 
 ## Ideas / next steps
 - Dungeon #2 with frozen build and extra points (see Concept).
-- Sprites from the Kenney 1-Bit or Tiny Dungeon pack instead of circles.
+- Balance (arena, 40 dungeons): ~45 % of random builds win; tactics 51/43/40 %. Stealth still weak, dungeon difficulty varies (11–88 %).
 - Sound effects.

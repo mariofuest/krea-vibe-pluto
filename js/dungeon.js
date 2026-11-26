@@ -88,10 +88,16 @@ Game.generateDungeon = function (seed) {
     var pool = depth < 0.3 ? ["rat", "rat", "goblin"]
       : depth < 0.6 ? ["goblin", "goblin", "skeleton", "rat"]
       : ["skeleton", "orc", "goblin", "orc"];
-    var n = idx === rooms.length - 1 ? 1 : ri(depth < 0.3 ? 1 : 2, 3);
-    for (var m = 0; m < n; m++) {
+    // Gefahrenbudget pro Raum: wächst mit der Tiefe, damit alle Dungeons ähnlich schwer sind
+    var budget = idx === rooms.length - 1 ? 2 : Math.round(2 + depth * 7);
+    for (var m = 0; m < 4 && budget > 0; m++) {
+      var fits = pool.filter(function (t) { return Game.MONSTERS[t].threat <= budget; });
+      if (!fits.length) break;
+      var type = fits[ri(0, fits.length - 1)];
       var p = freeSpot(r);
-      if (p) dungeon.monsters.push({ id: id++, type: pool[ri(0, pool.length - 1)], x: p.x, y: p.y });
+      if (!p) break;
+      dungeon.monsters.push({ id: id++, type: type, x: p.x, y: p.y });
+      budget -= Game.MONSTERS[type].threat;
     }
     // Gegenstände
     if (rnd() < 0.55) { var g = freeSpot(r); if (g) dungeon.items.push({ id: "i" + idx + "g", type: "gold", x: g.x, y: g.y }); }

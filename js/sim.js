@@ -5,7 +5,8 @@ var Game = (typeof window !== "undefined" ? window : globalThis).Game || ((typeo
 Game.MAX_TURNS = 900;
 Game.SIGHT = 6;
 
-Game.simulate = function (dungeon, build) {
+Game.simulate = function (dungeon, build, opts) {
+  var fast = opts && opts.fast; // nur Ergebnis, keine Frames (für Balance-Tests)
   var W = dungeon.w, H = dungeon.h, T = dungeon.tiles;
   var rnd = Game.rng(dungeon.seed * 7919 + 17);
   var has = {};
@@ -18,7 +19,7 @@ Game.simulate = function (dungeon, build) {
 
   var hero = {
     x: dungeon.start.x, y: dungeon.start.y, maxHp: stat("hp"), atk: stat("atk"), def: stat("def"),
-    lvl: 1, xp: 0, potions: has.potions ? 3 : 0, gold: 0, fireCd: 0, dodgeCount: 0, kills: 0,
+    lvl: 1, xp: 0, potions: has.potions ? 2 : 0, gold: 0, fireCd: 0, dodgeCount: 0, kills: 0,
   };
   hero.hp = hero.maxHp;
   var monsters = dungeon.monsters.map(function (m) {
@@ -36,26 +37,45 @@ Game.simulate = function (dungeon, build) {
   function cheb(a, b) { return Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y)); }
   function manh(a, b) { return Math.abs(a.x - b.x) + Math.abs(a.y - b.y); }
   function alive() { return monsters.filter(function (m) { return m.hp > 0; }); }
-  function monsterAt(x, y) { return monsters.find(function (m) { return m.hp > 0 && m.x === x && m.y === y; }); }
+  // Belegungskarte: welches Monster steht wo (schnell nachschlagen statt alle Monster durchgehen)
+  var occ = new Int32Array(W * H).fill(-1);
+  monsters.forEach(function (m, i) { m.idx = i; occ[m.y * W + m.x] = i; });
+  function monsterAt(x, y) { var i = occ[y * W + x]; return i >= 0 ? monsters[i] : undefined; }
+  function moveMonster(m, x, y) { occ[m.y * W + m.x] = -1; m.x = x; m.y = y; occ[y * W + x] = m.idx; }
   function ev(kind, text, extra) { var e = { kind: kind, text: text }; for (var k in extra || {}) e[k] = extra[k]; events.push(e); }
   var DIRS = [[1, 0], [-1, 0], [0, 1], [0, -1]];
 
-  // Dijkstra vom Helden aus; cost(x,y) liefert Zusatzkosten pro Feld
+  // Dijkstra vom Helden aus (mit Binär-Heap); cost(x,y) liefert Zusatzkosten pro Feld
+  var heapD = new Float64Array(W * H * 4), heapI = new Int32Array(W * H * 4);
   function distances(sx, sy, cost) {
     var dist = new Float64Array(W * H).fill(Infinity), prev = new Int32Array(W * H).fill(-1);
-    var open = [[0, sx, sy]];
-    dist[sy * W + sx] = 0;
-    while (open.length) {
-      var best = 0;
-      for (var i = 1; i < open.length; i++) if (open[i][0] < open[best][0]) best = i;
-      var cur = open[best]; open[best] = open[open.length - 1]; open.pop();
-      var d = cur[0], x = cur[1], y = cur[2];
-      if (d > dist[y * W + x]) continue;
+    var n = 0;
+    function push(d, i) {
+      var k = n++;
+      while (k > 0) { var p = (k - 1) >> 1; if (heapD[p] <= d) break; heapD[k] = heapD[p]; heapI[k] = heapI[p]; k = p; }
+      heapD[k] = d; heapI[k] = i;
+    }
+    function pop() {
+      var top = heapI[0], d = heapD[--n], i = heapI[n], k = 0;
+      while (true) {
+        var c = 2 * k + 1; if (c >= n) break;
+        if (c + 1 < n && heapD[c + 1] < heapD[c]) c++;
+        if (heapD[c] >= d) break;
+        heapD[k] = heapD[c]; heapI[k] = heapI[c]; k = c;
+      }
+      heapD[k] = d; heapI[k] = i;
+      return top;
+    }
+    dist[sy * W + sx] = 0; push(0, sy * W + sx);
+    while (n > 0) {
+      var d0 = heapD[0], cur = pop();
+      if (d0 > dist[cur]) continue;
+      var x = cur % W, y = (cur - x) / W;
       for (var k = 0; k < 4; k++) {
         var nx = x + DIRS[k][0], ny = y + DIRS[k][1];
         if (!floor(nx, ny)) continue;
-        var nd = d + 1 + (cost ? cost(nx, ny) : 0);
-        if (nd < dist[ny * W + nx]) { dist[ny * W + nx] = nd; prev[ny * W + nx] = y * W + x; open.push([nd, nx, ny]); }
+        var ni = ny * W + nx, nd = d0 + 1 + (cost ? cost(nx, ny) : 0);
+        if (nd < dist[ni]) { dist[ni] = nd; prev[ni] = cur; push(nd, ni); }
       }
     }
     return { dist: dist, prev: prev };
@@ -74,6 +94,7 @@ Game.simulate = function (dungeon, build) {
   }
 
   function snapshot() {
+    if (fast) { events = []; return; }
     frames.push({
       turn: turn,
       hero: { x: hero.x, y: hero.y, hp: hero.hp, maxHp: hero.maxHp, atk: hero.atk, def: hero.def, lvl: hero.lvl,
@@ -95,6 +116,7 @@ Game.simulate = function (dungeon, build) {
     m.awake = true;
     ev("hit", how + " " + Game.MONSTERS[m.type].name + ": " + dmg + " Schaden", { x: m.x, y: m.y, amount: dmg, target: "monster" });
     if (m.hp <= 0) {
+      occ[m.y * W + m.x] = -1;
       var t = Game.MONSTERS[m.type];
       hero.kills++;
       ev("kill", t.name + " besiegt" + (t.xp ? " (+" + t.xp + " EP)" : ""), { x: m.x, y: m.y });
@@ -108,7 +130,9 @@ Game.simulate = function (dungeon, build) {
   }
   function heroAttack(m) {
     var dmg = Math.max(1, heroDamage() + Math.floor(rnd() * 3) - 1 - m.def);
-    hurtMonster(m, dmg, "Schlag gegen");
+    var ambush = has.stealth && !m.awake;
+    if (ambush) dmg *= 3;
+    hurtMonster(m, dmg, ambush ? "Hinterhalt gegen" : "Schlag gegen");
     if (has.vampire) {
       var heal = Math.max(1, Math.round(dmg * 0.3));
       hero.hp = Math.min(hero.maxHp, hero.hp + heal);
@@ -134,22 +158,22 @@ Game.simulate = function (dungeon, build) {
     var limit = tactic === "careful" ? 0.5 : 0.35;
     if (hero.potions > 0 && hero.hp < hero.maxHp * limit) {
       hero.potions--;
-      var heal = Math.round(hero.maxHp * 0.5);
+      var heal = Math.round(hero.maxHp * 0.4);
       hero.hp = Math.min(hero.maxHp, hero.hp + heal);
       ev("potion", "Trinkt Heiltrank: +" + heal + " Leben", { x: hero.x, y: hero.y, amount: heal, target: "hero" });
       return;
     }
     // 2. Feuerball
     if (has.fireball && hero.fireCd === 0) {
-      var targets = alive().filter(function (m) { return m.awake && manh(m, hero) <= 4; });
+      var targets = alive().filter(function (m) { return m.awake && manh(m, hero) <= 5; });
       if (targets.length) {
         targets.sort(function (a, b) { return b.hp - a.hp || a.id - b.id; });
         var t = targets[0];
         hero.fireCd = 5;
         ev("fireball", "Feuerball!", { x: t.x, y: t.y, fromX: hero.x, fromY: hero.y });
         var splash = alive().filter(function (m) { return m !== t && cheb(m, t) <= 1; });
-        hurtMonster(t, 8, "Feuerball trifft");
-        splash.forEach(function (m) { hurtMonster(m, 4, "Flammen treffen"); });
+        hurtMonster(t, 10, "Feuerball trifft");
+        splash.forEach(function (m) { hurtMonster(m, 5, "Flammen treffen"); });
         return;
       }
     }
@@ -160,12 +184,27 @@ Game.simulate = function (dungeon, build) {
       heroAttack(adj[0]);
       return;
     }
-    // 4. Bewegen
     var awake = alive().filter(function (m) { return m.awake && !Game.MONSTERS[m.type].boss; });
+    // Vorsichtig: rasten, solange kein waches Monster in Sicht ist
+    if (tactic === "careful" && hero.hp < hero.maxHp &&
+        !awake.some(function (m) { return cheb(m, hero) <= Game.SIGHT; })) {
+      hero.hp = Math.min(hero.maxHp, hero.hp + 2);
+      if (turn % 5 === 0) ev("rest", "Rastet (+2 Leben)", { x: hero.x, y: hero.y });
+      return;
+    }
+    // 4. Bewegen
+    var danger = null;
+    if (tactic === "careful") {
+      danger = new Int32Array(W * H);
+      awake.forEach(function (m) {
+        for (var dy = -2; dy <= 2; dy++) for (var dx = -2; dx <= 2; dx++) {
+          var x = m.x + dx, y = m.y + dy;
+          if (Math.abs(dx) + Math.abs(dy) <= 2 && x >= 0 && y >= 0 && x < W && y < H) danger[y * W + x] += 6;
+        }
+      });
+    }
     var cost = function (x, y) {
-      var c = monsterAt(x, y) ? 3 : 0;
-      if (tactic === "careful") awake.forEach(function (m) { if (Math.abs(m.x - x) + Math.abs(m.y - y) <= 2) c += 6; });
-      return c;
+      return (occ[y * W + x] >= 0 ? 3 : 0) + (danger ? danger[y * W + x] : 0);
     };
     var map = distances(hero.x, hero.y, cost);
     var goal = null;
@@ -196,11 +235,11 @@ Game.simulate = function (dungeon, build) {
   }
 
   function monstersTurn() {
-    var heroMap = distances(hero.x, hero.y, null);
+    var heroMap = null; // Wegkarte zum Helden, nur berechnen, wenn ein waches Monster laufen will
     alive().forEach(function (m) {
       if (hero.hp <= 0) return;
       var t = Game.MONSTERS[m.type];
-      var notice = t.boss ? 3 : (has.stealth ? 2 : 5);
+      var notice = t.boss ? (has.stealth ? 1 : 3) : (has.stealth ? 2 : 5);
       if (!m.awake && cheb(m, hero) <= notice) {
         m.awake = true;
         if (t.boss) ev("wake", "Der Höhlenwächter erhebt sich! Erst wenn er fällt, öffnet sich der Ausgang.", { x: m.x, y: m.y });
@@ -211,7 +250,8 @@ Game.simulate = function (dungeon, build) {
           hero.dodgeCount++;
           if (hero.dodgeCount % 4 === 0) { ev("dodge", "Ausgewichen! (" + t.name + ")", { x: hero.x, y: hero.y }); return; }
         }
-        var dmg = Math.max(1, m.atk + Math.floor(rnd() * 3) - 1 - hero.def);
+        var raw = m.atk + Math.floor(rnd() * 3) - 1;
+        var dmg = Math.max(Math.ceil(raw * 0.4), raw - hero.def); // Rüstung fängt höchstens 60 % ab
         hero.hp -= dmg;
         ev("hurt", t.name + " trifft dich: " + dmg + " Schaden", { x: hero.x, y: hero.y, amount: dmg, target: "hero" });
         if (has.thorns) hurtMonster(m, 3, "Dornen stechen");
@@ -219,6 +259,7 @@ Game.simulate = function (dungeon, build) {
         return;
       }
       if (t.boss) return; // der Wächter verlässt seinen Posten nicht
+      if (!heroMap) heroMap = distances(hero.x, hero.y, null);
       var best = null, bd = heroMap.dist[m.y * W + m.x];
       DIRS.forEach(function (d) {
         var nx = m.x + d[0], ny = m.y + d[1];
@@ -226,7 +267,7 @@ Game.simulate = function (dungeon, build) {
         var nd = heroMap.dist[ny * W + nx];
         if (nd < bd) { bd = nd; best = { x: nx, y: ny }; }
       });
-      if (best) { m.x = best.x; m.y = best.y; }
+      if (best) moveMonster(m, best.x, best.y);
     });
   }
 
@@ -247,5 +288,6 @@ Game.simulate = function (dungeon, build) {
     snapshot();
   }
   if (!result) result = { won: false, turn: turn, killer: null, timeout: true };
+  result.lvl = hero.lvl; result.kills = hero.kills; result.hp = hero.hp; result.maxHp = hero.maxHp;
   return { frames: frames, result: result, seen: seen };
 };

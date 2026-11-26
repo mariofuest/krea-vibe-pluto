@@ -3,7 +3,7 @@ var Game = window.Game || (window.Game = {});
 
 Game.ui = (function () {
   var $ = function (id) { return document.getElementById(id); };
-  var build, dungeon, sim, idx = 0, playing = false, speed = 4, acc = 0, lastT = 0, frameSince = 0;
+  var build, seed = 1, dungeon, sim, idx = 0, playing = false, speed = 4, acc = 0, lastT = 0, frameSince = 0;
   var attempts = [];
   var SPEEDS = [2, 4, 8, 16, 60];
 
@@ -65,17 +65,24 @@ Game.ui = (function () {
       $("tactics").appendChild(b);
     });
 
+    $("seed").value = seed;
     $("attempts").innerHTML = attempts.length ? "" : "<li class='none'>Noch kein Versuch.</li>";
     attempts.slice().reverse().forEach(function (a) {
       var li = document.createElement("li");
       li.className = a.won ? "won" : "lost";
-      li.textContent = "#" + a.n + "  " + a.summary + "  →  " + (a.won ? "🏆 geschafft in Zug " + a.turn : "💀 Zug " + a.turn + (a.killer ? ", " + a.killer : ""));
+      li.textContent = "#" + a.n + "  Dungeon " + (a.seed || 1) + " · " + a.summary + "  →  " + (a.won ? "🏆 geschafft in Zug " + a.turn : "💀 Zug " + a.turn + (a.killer ? ", " + a.killer : ""));
       li.title = "Klicken, um diesen Build zu laden";
-      li.onclick = function () { build = JSON.parse(JSON.stringify(a.build)); changed(); };
+      li.onclick = function () { build = JSON.parse(JSON.stringify(a.build)); setSeed(a.seed || 1); changed(); };
       $("attempts").appendChild(li);
     });
   }
   function changed() { save("pluto.build", build); renderSetup(); }
+  function setSeed(s) {
+    s = Math.max(1, Math.min(999999, Math.floor(+s) || 1));
+    seed = s; save("pluto.seed", seed);
+    var url = new URL(location.href); url.searchParams.set("seed", seed);
+    history.replaceState(null, "", url.pathname + url.search + location.hash);
+  }
 
   function summary(b) {
     var t = Game.TACTICS.find(function (x) { return x.id === b.tactic; });
@@ -85,9 +92,11 @@ Game.ui = (function () {
 
   // ---------- Abspielen ----------
   function play() {
+    if (!dungeon || dungeon.seed !== seed) dungeon = Game.generateDungeon(seed);
     sim = Game.simulate(dungeon, build);
     var r = sim.result;
-    attempts.push({ n: attempts.length + 1, build: JSON.parse(JSON.stringify(build)), summary: summary(build), won: r.won, turn: r.turn, killer: r.killer });
+    $("dname").textContent = "Dungeon " + seed;
+    attempts.push({ n: attempts.length + 1, seed: seed, build: JSON.parse(JSON.stringify(build)), summary: summary(build), won: r.won, turn: r.turn, killer: r.killer });
     save("pluto.attempts", attempts);
     idx = 0; playing = true; acc = 0;
     $("timeline").max = sim.frames.length - 1;
@@ -154,13 +163,16 @@ Game.ui = (function () {
   }
 
   function init() {
-    dungeon = Game.generateDungeon(1);
+    var qs = new URLSearchParams(location.search).get("seed");
+    setSeed(qs || load("pluto.seed", 1));
     build = load("pluto.build", null);
     if (!build || Game.buildCost(build) > Game.BUDGET) build = Game.defaultBuild();
     attempts = load("pluto.attempts", []);
     $("budget").textContent = Game.BUDGET;
 
     $("start").onclick = play;
+    $("seed").onchange = function () { setSeed(this.value); renderSetup(); };
+    $("dice").onclick = function () { setSeed(1 + Math.floor(Math.random() * 9999)); renderSetup(); };
     $("reset").onclick = function () { build = Game.defaultBuild(); changed(); };
     $("clear").onclick = function () { attempts = []; save("pluto.attempts", attempts); renderSetup(); };
     $("back").onclick = $("change").onclick = function () { playing = false; $("play").hidden = true; $("setup").hidden = false; renderSetup(); };

@@ -20,6 +20,12 @@ button.small { padding: 1px 8px; font-size: 12px; }
 #setup { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; max-width: 1100px; margin: 0 auto; padding: 8px 16px 24px; }
 .budget { font: 700 18px ui-monospace, Menlo, monospace; padding: 12px 14px; border: 2px solid var(--gold); border-radius: 8px; color: var(--gold); }
 .budget #points { font-size: 26px; }
+.seedrow { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
+.seedrow label { font-weight: 700; }
+.seedrow input { width: 110px; font: 700 16px ui-monospace, monospace; padding: 6px 8px; background: var(--panel); color: var(--fg); border: 1px solid var(--line); border-radius: 6px; }
+.seedrow small { flex-basis: 100%; color: var(--muted); }
+.seedrow code { color: var(--gold); }
+#dname { font: 13px ui-monospace, monospace; color: var(--gold); }
 .budget.empty { border-color: var(--green); color: var(--green); }
 .stat { display: grid; grid-template-columns: 1fr auto auto auto; gap: 10px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--line); }
 .stat .val { color: var(--gold); font-weight: 700; margin-left: 4px; }
@@ -47,7 +53,7 @@ button.small { padding: 1px 8px; font-size: 12px; }
 
 #play { display: grid; grid-template-columns: auto 280px; gap: 16px; justify-content: center; padding: 8px 16px 16px; }
 .stage { position: relative; }
-canvas { display: block; width: 800px; max-width: 100%; background: #07060c; border: 1px solid var(--line); border-radius: 6px; image-rendering: pixelated; }
+canvas { display: block; width: 800px; height: auto; max-width: 100%; background: #07060c; border: 1px solid var(--line); border-radius: 6px; image-rendering: pixelated; }
 .controls { display: flex; gap: 6px; align-items: center; margin-top: 8px; flex-wrap: wrap; }
 .controls > button { width: 40px; height: 36px; padding: 0; font-size: 16px; }
 .controls .pp { width: 52px; background: var(--gold); color: #241a00; border: 0; }

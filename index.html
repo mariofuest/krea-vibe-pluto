@@ -16,6 +16,12 @@
   <main id="setup">
     <section class="col">
       <div class="budget"><span id="points">12</span> von <span id="budget">12</span> Punkten übrig</div>
+      <div class="seedrow">
+        <label for="seed">Dungeon Nr.</label>
+        <input id="seed" type="number" min="1" max="999999" value="1">
+        <button id="dice" title="Zufälliger Dungeon">🎲</button>
+        <small>Gleiche Nummer = gleicher Dungeon. Zum Teilen: Link mit <code>?seed=…</code></small>
+      </div>
       <h2>Werte</h2>
       <div id="stats"></div>
       <h2>Taktik <small>kostenlos</small></h2>
@@ -37,7 +43,7 @@
   <!-- Abspielen -->
   <main id="play" hidden>
     <div class="stage">
-      <canvas id="game" width="800" height="520"></canvas>
+      <canvas id="game" width="640" height="416"></canvas>
       <div id="result" hidden>
         <h2 id="resulttitle"></h2>
         <p id="resulttext"></p>
@@ -52,6 +58,7 @@
         <button id="last" title="Zum Ende">⏭</button>
         <input id="timeline" type="range" min="0" value="0" aria-label="Zeitleiste">
         <span id="turn"></span>
+        <span id="dname"></span>
         <span id="speeds"></span>
       </div>
     </div>
@@ -64,7 +71,7 @@
     </aside>
   </main>
 
-  <footer><a href="history/">Versionen &amp; Prompts</a> · <a href="https://mariofuest.github.io/krea-vibe/">Alle Spiele</a></footer>
+  <footer><a href="history/">Versionen &amp; Prompts</a> · <a href="https://mariofuest.github.io/krea-vibe/">Alle Spiele</a> · Grafik: <a href="https://kenney.nl/assets/tiny-dungeon">Kenney Tiny Dungeon</a> (CC0)</footer>
 
   <script src="js/data.js"></script>
   <script src="js/dungeon.js"></script>
